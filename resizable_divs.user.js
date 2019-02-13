@@ -3,7 +3,7 @@
 // @description   Makes divs with a specific CSS class name resizable.  Ideal for tabular layouts, especially Wekan.
 // @namespace     https://github.com/rgalonso
 // @downloadURL   https://github.com/rgalonso/tampermonkey_scripts/raw/master/resizable_divs.user.js
-// @version       1.2
+// @version       1.3
 // @author        Robert Alonso
 // @match         http*://*/*
 // @grant         none
@@ -379,9 +379,9 @@ function clickTapHandler(e) {
     // for dynamically supporting new lists and swimlanes being added.
     // Click/tap once to add resizer handles to all new lists/swimlanes.  Doubleclick/tap to auto-
     // resize all lists.
-
     update()
-    doubletap(DoubleTapAction.FIT_ALL)
+    forceFitAll()
+    window.removeEventListener('click', clickTapHandler)
 }
 
 // userscript "@match" directive is hard to specify generically for Wekan because it's just another
