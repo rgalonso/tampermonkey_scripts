@@ -3,11 +3,11 @@
 // @description   Makes divs with a specific CSS class name resizable.  Ideal for tabular layouts, especially Wekan.
 // @namespace     https://github.com/rgalonso
 // @downloadURL   https://github.com/rgalonso/tampermonkey_scripts/raw/master/resizable_divs.user.js
-// @version       1.0
+// @version       1.1
 // @author        Robert Alonso
-// @match         http*://*/grain*libreboard
+// @match         http*://*/*
 // @grant         none
-// @run-at        context-menu
+// @run-at        document-idle
 // ==/UserScript==
 
 function addGlobalStyle(css) {
@@ -87,9 +87,6 @@ function addStyleAndResizersToElementsOfClass(class_name, new_classes, add_resiz
     addStyleAndResizersToElements(elems, new_classes, add_resizers)
 }
 
-addStyleAndResizersToElementsOfClass('list js-list', 'resizable');
-addStyleAndResizersToElementsOfClass('list js-list-composer', 'resizable', false);
-
 /*
  * Synchronized resizable divs
  *
@@ -154,6 +151,32 @@ function addStyleAndResizersToElements(elems, new_classes = null, add_resizers =
 /* Handle mouse doubleclick or touch doubletap */
 var latest_tap;
 
+function getEvenlyResizedWidth() {
+    var total_resizable_width = 0
+    var num_resizable_children = 0
+    var evenly_resized_width = 0
+
+    try {
+        total_resizable_width = document.getElementsByClassName('board-canvas')[0].offsetWidth
+
+        Array.prototype.slice.call(document.getElementsByClassName('swimlane js-swimlane')[0].children).forEach(function(child) {
+            if (child.classList.contains('resizable')) {
+                num_resizable_children++
+            }
+            else {
+                total_resizable_width -= child.offsetWidth
+            }
+        })
+    }
+    catch (e) {}
+
+    if (num_resizable_children > 0) {
+        evenly_resized_width = total_resizable_width / num_resizable_children
+    }
+
+    return evenly_resized_width
+}
+
 function doubletap(double_tap_action, force = false, e = null) {
   var now = new Date().getTime();
   var timesince = now - latest_tap;
@@ -170,22 +193,20 @@ function doubletap(double_tap_action, force = false, e = null) {
         break;
       case DoubleTapAction.FIT_ALL:
         // resize all elements such that they all fit on the screen with the same width
-        try {
-          // specialization for Wekan
-          var total_resizable_width = document.getElementsByClassName('board-canvas')[0].offsetWidth
-          var num_resizable_children = 0
+        var resized_width = getEvenlyResizedWidth()
 
-          Array.prototype.slice.call(document.getElementsByClassName('swimlane js-swimlane')[0].children).forEach(function(child) {
-              if (child.classList.contains('resizable')) {
-                  num_resizable_children++
-              }
-              else {
-                  total_resizable_width -= child.offsetWidth
-              }
-          })
+        if (resized_width == 0) {
+            // (re)apply styles, etc.
+            executeOnDocument()
 
-          doResize(all_resizable_divs, total_resizable_width / num_resizable_children)
-        } catch (dummy_err) {
+            // try again
+            resized_width = getEvenlyResizedWidth()
+        }
+
+        if (resized_width > 0) {
+            doResize(all_resizable_divs, resized_width)
+        }
+        else {
           console.log('FIT_ALL DoubleTapAction not supported for this page')
         }
         break;
@@ -332,12 +353,31 @@ function stopResize() {
   active_element = null
 }
 
-// update list of all resizable divs
-all_resizable_divs = document.getElementsByClassName('resizable');
+function update() {
+    // add style and resizer handles to specified elements
+    addStyleAndResizersToElementsOfClass('list js-list', 'resizable');
+    addStyleAndResizersToElementsOfClass('list js-list-composer', 'resizable', false);
 
-updateResizableEventHandlers()
-try {
-    active_element = all_resizable_divs[0]
-    doubletap(DoubleTapAction.FIT_ALL, true)
+    // update list of all resizable divs
+    all_resizable_divs = document.getElementsByClassName('resizable');
+
+    // install event handlers
+    updateResizableEventHandlers()
 }
-catch (dummy_err) {}
+
+function clickTapHandler(e) {
+    // This isn't ideal because this is a fair amount of activity that happens on every click/tap,
+    // usually unnecessarily.  But until this is integrated into Wekan directly, this is very useful
+    // for dynamically supporting new lists and swimlanes being added.
+    // Click/tap once to add resizer handles to all new lists/swimlanes.  Doubleclick/tap to auto-
+    // resize all lists.
+
+    update()
+    doubletap(DoubleTapAction.FIT_ALL)
+}
+
+// userscript "@match" directive is hard to specify generically for Wekan because it's just another
+// Sandstorm component in an iframe, but looking at the referrer URL can help us figure it out
+if (document.referrer.match('[a-z]*://[^:/]+[:0-9]*/grain.*/sandstorm/libreboard$')) {
+    window.addEventListener('click', clickTapHandler)
+}
