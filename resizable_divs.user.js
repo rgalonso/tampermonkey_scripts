@@ -3,7 +3,7 @@
 // @description   Makes divs with a specific CSS class name resizable.  Ideal for tabular layouts, especially Wekan.
 // @namespace     https://github.com/rgalonso
 // @downloadURL   https://github.com/rgalonso/tampermonkey_scripts/raw/master/resizable_divs.user.js
-// @version       1.1
+// @version       1.2
 // @author        Robert Alonso
 // @match         http*://*/*
 // @grant         none
@@ -183,6 +183,8 @@ function doubletap(double_tap_action, force = false, e = null) {
 
   // if two mousedown/touchstart events occur within a short period, assume it's a doubletap
   if (force || ((timesince < 600) && (timesince > 0))) {
+    window.removeEventListener('resize', forceFitAll)
+
     switch (double_tap_action) {
       case DoubleTapAction.MATCH_ALL:
         // resize all elements such that they have the same width as the reference element
@@ -205,6 +207,7 @@ function doubletap(double_tap_action, force = false, e = null) {
 
         if (resized_width > 0) {
             doResize(all_resizable_divs, resized_width)
+            window.addEventListener('resize', forceFitAll)
         }
         else {
           console.log('FIT_ALL DoubleTapAction not supported for this page')
@@ -216,6 +219,10 @@ function doubletap(double_tap_action, force = false, e = null) {
   }
 
   latest_tap = now;
+}
+
+function forceFitAll(e) {
+    doubletap(DoubleTapAction.FIT_ALL, true)
 }
 
 /* get the X position associated with either a mouse or touch event */
@@ -327,6 +334,7 @@ function resizeTemplate(resizable_elements, iterate_all = true) {
     var pageX = getPageX(e)
     const width = active_element.getBoundingClientRect().width + (pageX - previous_x)
     previous_x = pageX
+    window.removeEventListener('resize', forceFitAll)
     doResize(resizable_elements, width, iterate_all)
   })
 }
