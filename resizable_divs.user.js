@@ -3,7 +3,7 @@
 // @description   Makes divs with a specific CSS class name resizable.  Ideal for tabular layouts, especially Wekan.
 // @namespace     https://github.com/rgalonso
 // @downloadURL   https://github.com/rgalonso/tampermonkey_scripts/raw/master/resizable_divs.user.js
-// @version       1.3
+// @version       1.4
 // @author        Robert Alonso
 // @match         http*://*/*
 // @grant         none
@@ -159,7 +159,7 @@ function getEvenlyResizedWidth() {
     try {
         total_resizable_width = document.getElementsByClassName('board-canvas')[0].offsetWidth
 
-        Array.prototype.slice.call(document.getElementsByClassName('swimlane js-swimlane')[0].children).forEach(function(child) {
+        Array.prototype.slice.call(document.getElementsByClassName('swimlane js-lists')[0].children).forEach(function(child) {
             if (child.classList.contains('resizable')) {
                 num_resizable_children++
             }
@@ -199,7 +199,7 @@ function doubletap(double_tap_action, force = false, e = null) {
 
         if (resized_width == 0) {
             // (re)apply styles, etc.
-            executeOnDocument()
+            update()
 
             // try again
             resized_width = getEvenlyResizedWidth()
@@ -284,7 +284,7 @@ function doResize(resizable_elements, width, iterate_all = true) {
     if (!iterate_all) {
       try {
         // specialization for Wekan
-        var swimlanes = Array.prototype.slice.call(document.getElementsByClassName('swimlane js-swimlane'))
+        var swimlanes = Array.prototype.slice.call(document.getElementsByClassName('swimlane js-lists'))
         var col = null
 
         //find the column matching the reference element
