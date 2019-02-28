@@ -3,7 +3,7 @@
 // @description   Makes divs with a specific CSS class name resizable.  Ideal for tabular layouts, especially Wekan.
 // @namespace     https://github.com/rgalonso
 // @downloadURL   https://github.com/rgalonso/tampermonkey_scripts/raw/master/resizable_divs.user.js
-// @version       1.4
+// @version       1.5
 // @author        Robert Alonso
 // @match         http*://*/*
 // @grant         none
@@ -133,9 +133,9 @@ function addStyleAndResizersToElements(elems, new_classes = null, add_resizers =
         }
 
         if (add_resizers) {
-          [['all', 'Adjust width of all elements.  Double-click/tap to set all elements to width of this element.'],
-           ['column', 'Adjust width of all elements of this column.  Double-click/tap to set all elements of this column to width of this element.'],
-           ['individual', 'Adjust width of this element.  Double-click/tap to evenly fit all elements on the screen.']].forEach(function(resizer_details) {
+          [['all', 'Adjust width of all elements.<br>Double-click/tap to set all elements to width of this element.'],
+           ['column', 'Adjust width of all elements of this column.<br>Double-click/tap to set all elements of this column to width of this element.'],
+           ['individual', 'Adjust width of this element.<br>Double-click/tap to evenly fit all elements on the screen.']].forEach(function(resizer_details) {
             var resizer = document.createElement('div')
             var tooltip = document.createElement('span')
             resizer.classList.add('resizer-handle', resizer_details[0], 'tooltip')
