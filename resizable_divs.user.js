@@ -3,7 +3,7 @@
 // @description   Makes divs with a specific CSS class name resizable.  Ideal for tabular layouts, especially Wekan.
 // @namespace     https://github.com/rgalonso
 // @downloadURL   https://github.com/rgalonso/tampermonkey_scripts/raw/master/resizable_divs.user.js
-// @version       1.5
+// @version       1.6
 // @author        Robert Alonso
 // @match         http*://*/*
 // @grant         none
@@ -125,20 +125,31 @@ var DoubleTapAction = {
 }
 
 function addStyleAndResizersToElements(elems, new_classes = null, add_resizers = true) {
+    const resizer_handle_class_name = 'resizer-handle'
+
     Array.prototype.slice.call(elems).forEach(function(x) {
         if (new_classes) {
           new_classes.split(' ').forEach(function (new_class) {
+            if (false == x.classList.contains(new_class)) {
               x.classList.add(new_class)
+            }
           })
         }
 
-        if (add_resizers) {
+        var add_resizers_to_x = add_resizers
+        for (var i = x.children.length - 1; add_resizers_to_x && i >= 0; i--) {
+          if (x.children[i].classList.contains(resizer_handle_class_name)) {
+            add_resizers_to_x = false
+          }
+        }
+
+        if (add_resizers_to_x) {
           [['all', 'Adjust width of all elements.<br>Double-click/tap to set all elements to width of this element.'],
            ['column', 'Adjust width of all elements of this column.<br>Double-click/tap to set all elements of this column to width of this element.'],
            ['individual', 'Adjust width of this element.<br>Double-click/tap to evenly fit all elements on the screen.']].forEach(function(resizer_details) {
             var resizer = document.createElement('div')
             var tooltip = document.createElement('span')
-            resizer.classList.add('resizer-handle', resizer_details[0], 'tooltip')
+            resizer.classList.add(resizer_handle_class_name, resizer_details[0], 'tooltip')
             tooltip.classList.add('tooltiptext')
             tooltip.innerHTML = resizer_details[1]
             resizer.appendChild(tooltip)
@@ -361,7 +372,7 @@ function stopResize() {
   active_element = null
 }
 
-function update() {
+function update(add_update_button = true) {
     // add style and resizer handles to specified elements
     addStyleAndResizersToElementsOfClass('list js-list', 'resizable');
     addStyleAndResizersToElementsOfClass('list js-list-composer', 'resizable', false);
@@ -371,21 +382,45 @@ function update() {
 
     // install event handlers
     updateResizableEventHandlers()
+
+    // add update button for future refreshing
+    if (add_update_button) {
+      addUpdateButton()
+    }
 }
 
-function clickTapHandler(e) {
-    // This isn't ideal because this is a fair amount of activity that happens on every click/tap,
-    // usually unnecessarily.  But until this is integrated into Wekan directly, this is very useful
-    // for dynamically supporting new lists and swimlanes being added.
-    // Click/tap once to add resizer handles to all new lists/swimlanes.  Doubleclick/tap to auto-
-    // resize all lists.
+function updateOnFirstClick(e) {
     update()
     forceFitAll()
-    window.removeEventListener('click', clickTapHandler)
+    window.removeEventListener('click', updateOnFirstClick)
+}
+
+function addUpdateButton() {
+  const updater_class_name = 'resizer-updater'
+  var btns_right = document.getElementsByClassName('board-header-btns right')[0]
+
+  for (var i = 0; i < btns_right.children.length; i++) {
+    if (btns_right.children[i].classList.contains(updater_class_name)) {
+      //we already have the updater button added, so break out
+      //of the loop without adding a new (redundant) button
+      break
+    }
+    else if (btns_right.children[i].classList.contains('separator')) {
+      var updater_btn = document.createElement('a')
+      var inner_span = document.createElement('span')
+      updater_btn.classList.add('board-header-btn', updater_class_name)
+      inner_span.innerHTML = "Add/Update Resizers"
+      updater_btn.appendChild(inner_span)
+      updater_btn.addEventListener('click', function(e) { update(false) })
+      //add button and break out of loop
+      btns_right.insertBefore(updater_btn, btns_right.children[i])
+      break
+    }
+  }
 }
 
 // userscript "@match" directive is hard to specify generically for Wekan because it's just another
 // Sandstorm component in an iframe, but looking at the referrer URL can help us figure it out
 if (document.referrer.match('[a-z]*://[^:/]+[:0-9]*/grain.*/sandstorm/libreboard$')) {
-    window.addEventListener('click', clickTapHandler)
+    window.addEventListener('click', updateOnFirstClick)
 }
