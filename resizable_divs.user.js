@@ -3,7 +3,7 @@
 // @description   Makes divs with a specific CSS class name resizable.  Ideal for tabular layouts, especially Wekan.
 // @namespace     https://github.com/rgalonso
 // @downloadURL   https://github.com/rgalonso/tampermonkey_scripts/raw/master/resizable_divs.user.js
-// @version       1.6
+// @version       1.7
 // @author        Robert Alonso
 // @match         http*://*/*
 // @grant         none
@@ -372,7 +372,7 @@ function stopResize() {
   active_element = null
 }
 
-function update(add_update_button = true) {
+function update(add_buttons = true) {
     // add style and resizer handles to specified elements
     addStyleAndResizersToElementsOfClass('list js-list', 'resizable');
     addStyleAndResizersToElementsOfClass('list js-list-composer', 'resizable', false);
@@ -384,36 +384,53 @@ function update(add_update_button = true) {
     updateResizableEventHandlers()
 
     // add update button for future refreshing
-    if (add_update_button) {
-      addUpdateButton()
+    if (add_buttons) {
+      addButtons()
     }
 }
 
-function updateOnFirstClick(e) {
-    update()
-    forceFitAll()
-    window.removeEventListener('click', updateOnFirstClick)
-}
-
-function addUpdateButton() {
+function addButtons() {
   const updater_class_name = 'resizer-updater'
+  const force_fit_class_name = 'force-fit-all'
   var btns_right = document.getElementsByClassName('board-header-btns right')[0]
 
   for (var i = 0; i < btns_right.children.length; i++) {
-    if (btns_right.children[i].classList.contains(updater_class_name)) {
+    if (btns_right.children[i].classList.contains(updater_class_name) || btns_right.children[i].classList.contains(force_fit_class_name)) {
       //we already have the updater button added, so break out
       //of the loop without adding a new (redundant) button
       break
     }
     else if (btns_right.children[i].classList.contains('separator')) {
-      var updater_btn = document.createElement('a')
+      var force_fit_btn = document.createElement('a')
+      var inner_i = document.createElement('i')
       var inner_span = document.createElement('span')
-      updater_btn.classList.add('board-header-btn', updater_class_name)
-      inner_span.innerHTML = "Add/Update Resizers"
-      updater_btn.appendChild(inner_span)
-      updater_btn.addEventListener('click', function(e) { update(false) })
+
+      //create button to force fit all
+      force_fit_btn.classList.add('board-header-btn', force_fit_class_name)
+      force_fit_btn.setAttribute('href', '#')
+      force_fit_btn.setAttribute('title', 'Fit All')
+      inner_i.classList.add('fa', 'fa-arrows')
+      force_fit_btn.appendChild(inner_i)
+      inner_span.innerHTML = "Fit All"
+      force_fit_btn.appendChild(inner_span)
+      force_fit_btn.addEventListener('click', function(e) { forceFitAll() })
+      //add button
+      btns_right.insertBefore(force_fit_btn, btns_right.children[i])
+
+      var resizer_btn = document.createElement('a')
+      var inner_i2 = document.createElement('i')
+      var inner_span2 = document.createElement('span')
+      //create button to add/update resizer handles
+      resizer_btn.classList.add('board-header-btn', updater_class_name)
+      resizer_btn.setAttribute('href', '#')
+      resizer_btn.setAttribute('title', 'Add Resizers')
+      inner_i2.classList.add('fa', 'fa-text-width')
+      resizer_btn.appendChild(inner_i2)
+      inner_span2.innerHTML = "Add Resizers"
+      resizer_btn.appendChild(inner_span2)
+      resizer_btn.addEventListener('click', function(e) { update(false) })
       //add button and break out of loop
-      btns_right.insertBefore(updater_btn, btns_right.children[i])
+      btns_right.insertBefore(resizer_btn, btns_right.children[i])
       break
     }
   }
@@ -422,5 +439,10 @@ function addUpdateButton() {
 // userscript "@match" directive is hard to specify generically for Wekan because it's just another
 // Sandstorm component in an iframe, but looking at the referrer URL can help us figure it out
 if (document.referrer.match('[a-z]*://[^:/]+[:0-9]*/grain.*/sandstorm/libreboard$')) {
-    window.addEventListener('click', updateOnFirstClick)
+  if( document.readyState !== 'loading' ) {
+    addButtons()
+  }
+  else {
+    document.addEventListener('DOMContentLoaded', function(e) { addButtons() })
+  }
 }
